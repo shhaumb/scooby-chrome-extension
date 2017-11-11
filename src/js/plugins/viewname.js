@@ -1,15 +1,19 @@
+import { asTupleString } from '../utils';
+
 export class ViewNamePlugin {
   constructor() {
     this.name = 'ViewName';
-    this.label = 'View name';
+    this.label = 'View';
     this.TabComponent = null;
   }
 
   getGeneralData(pluginData) {
     return [
       {
-        name: 'View\'s name',
-        value: pluginData.view_name,
+        name: 'View',
+        value: `${pluginData.view_name}(*args=${
+          asTupleString(pluginData.args)}, **kwargs=${
+          JSON.stringify(pluginData.kwargs, null, 1)})`,
       },
     ];
   }

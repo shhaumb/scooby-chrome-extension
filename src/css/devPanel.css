@@ -17,6 +17,14 @@ body {
     margin-left: 5px;
 }
 
+.float-left {
+    float: left;
+}
+
+.text-nowrap {
+    white-space: nowrap;
+}
+
 .panel-header {
     position: fixed;
     top: 0;
@@ -62,7 +70,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
 .left-pane .row {
@@ -96,10 +104,10 @@ body {
 
 .right-pane-header .tab {
     float: left;
-    width: 80px;
+    min-width: 80px;
     height: 25px;
     border-right: 1px solid #ccc;
-    padding: 5px;
+    padding: 5px 20px;
     text-align: center;
     cursor: pointer;
 }
@@ -127,7 +135,7 @@ body {
 }
 
 .general-tab-content-row {
-    padding: 5px;
+    padding: 3px;
 }
 
 .query {

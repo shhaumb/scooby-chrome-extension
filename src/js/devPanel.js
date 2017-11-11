@@ -4,33 +4,16 @@ import jQuery from 'jquery';
 import classNames from 'classnames';
 
 import { plugins } from './plugins';
+import {
+  getGeneralData,
+  startsWith,
+  getDomain,
+  getUrlAfterDomain,
+  getScoobyDataUrl,
+} from './utils';
 
 const ScoobyHeader = 'X-Scooby';
 
-function startsWith(string, sub) {
-  if (sub !== undefined) {
-    return string.substring(0, sub.length) === sub;
-  }
-  return false;
-}
-
-function getDomain(url) {
-  if (startsWith(url, 'https')) {
-    return `https://${url.substring(8).split('/')[0]}`;
-  } else if (startsWith(url, 'http')) {
-    return `http://${url.substring(7).split('/')[0]}`;
-  }
-  return url.split('/')[0];
-}
-
-function getUrlAfterDomain(url) {
-  const domain = getDomain(url);
-  return url.substring(domain.length);
-}
-
-function getScoobyDataUrl(domain, uuid) {
-  return `${domain}/scooby/get-data/${uuid}/`;
-}
 
 class App extends React.Component {
   constructor() {
@@ -68,6 +51,7 @@ class App extends React.Component {
   fetchHttpData(http, uuid) {
     const domain = getDomain(http.request.url);
     jQuery.get(getScoobyDataUrl(domain, uuid)).then((data) => {
+      console.log(data);
       this.setState({
         httpCalls: [...this.state.httpCalls, {
           http,
@@ -123,12 +107,14 @@ class LeftPane extends React.Component {
             httpCalls.map((httpCall, index) => (
               <div
                 key={httpCall.uuid}
-                className={classNames('row', {
+                className={classNames('row', 'text-nowrap', {
                   'active-row': index == activeCallIndex,
                 })}
                 onClick={this.onClickOnRow.bind(this, index)}
               >
-                { getUrlAfterDomain(httpCall.http.request.url) }
+                <b>
+                  { httpCall.http.request.method }
+                </b> { getUrlAfterDomain(httpCall.http.request.url) }
               </div>
             ))
           }
@@ -225,7 +211,8 @@ class RightPaneGeneralTab extends React.Component {
   render() {
     const { httpCall } = this.props;
     const { plugins_data } = httpCall.data;
-    let dataLines = [];
+    const { request, response } = httpCall.http;
+    let dataLines = getGeneralData(request, response);
     plugins.forEach((plugin) => {
       if (plugin.name in plugins_data) {
         dataLines = [
@@ -234,7 +221,6 @@ class RightPaneGeneralTab extends React.Component {
         ];
       }
     });
-    console.log(plugins, plugins_data, dataLines);
     return (
       <div className='general-tab-content'>
         {
@@ -249,7 +235,7 @@ class RightPaneGeneralTab extends React.Component {
               <span
                 className='margin-left-5'
               >
-                {dataLine.value || ''}
+                {(dataLine.value == undefined) ? '' : dataLine.value}
               </span>
             </div>
           ))

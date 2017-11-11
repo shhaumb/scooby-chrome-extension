@@ -43,8 +43,9 @@ class SQLTabComponent extends React.Component {
     return (
       <div>
         {
-          queries.map(query => (
+          queries.map((query, index) => (
             <Query
+              key={index}
               query={query}
             />
           ))
