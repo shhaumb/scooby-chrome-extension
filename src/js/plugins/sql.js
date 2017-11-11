@@ -3,14 +3,31 @@ import React from 'react';
 function Query({ query }) {
   return (
     <div className='query'>
+      <div className='query-location'>
+        <div className='query-row-single'>
+          <strong>File:</strong> { query.location.filename }
+        </div>
+        <div className='query-row-single'>
+          <strong>line no:</strong> { query.location.lineno }
+        </div>
+        <div className='query-row-single'>
+          In <strong>{ query.location.name }()</strong>
+        </div>
+        <br />
+        <br />
+        <div className='query-row-single'>
+          { query.location.line }
+        </div>
+        <div className='clear-fix' />
+      </div>
       <div className='query-sql'>
         { query.query }
       </div>
       <div className='query-extra'>
-        <div className='query-extra-single'>
+        <div className='query-row-single'>
           Time taken: { Math.round(query.time_taken) } ms
         </div>
-        <div className='query-extra-single'>
+        <div className='query-row-single'>
           using: { query.using }
         </div>
         <div className='clear-fix' />

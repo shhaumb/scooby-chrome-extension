@@ -131,9 +131,15 @@ body {
 }
 
 .query {
-    margin: 10px 5px;
+    margin: 10px 5px 20px 5px;
     border: 1px solid #d8d8d8;
     border-radius: 4px;
+}
+
+.query-location {
+    padding: 10px;
+    border-bottom: 1px solid #d8d8d8;
+    background-color: #f8f8f8;
 }
 
 .query-sql {
@@ -146,7 +152,7 @@ body {
     background-color: #f8f8f8;
 }
 
-.query-extra-single {
+.query-row-single {
     float: left;
     margin-right: 15px;
 }
