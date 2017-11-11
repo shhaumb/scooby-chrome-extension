@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import jQuery from 'jquery';
 import classNames from 'classnames';
 
+import { plugins } from './plugins';
 
 const ScoobyHeader = 'X-Scooby';
 
@@ -121,6 +122,7 @@ class LeftPane extends React.Component {
           {
             httpCalls.map((httpCall, index) => (
               <div
+                key={httpCall.uuid}
                 className={classNames('row', {
                   'active-row': index == activeCallIndex,
                 })}
@@ -137,13 +139,122 @@ class LeftPane extends React.Component {
 }
 
 class RightPane extends React.Component {
+  constructor(props) {
+    super(props);
+    const { httpCall } = this.props;
+    if (!httpCall) {
+      this.state = {};
+      return;
+    }
+    this.state = this.getInitialState(this.props);
+  }
+
+  getInitialState(props) {
+    const { httpCall } = props;
+    let tabs = [{
+      name: 'general',
+      label: 'General',
+      Component: RightPaneGeneralTab,
+    }];
+    const { plugins_data } = httpCall.data;
+    plugins.forEach((plugin) => {
+      if ((plugin.name in plugins_data) && plugin.TabComponent) {
+        tabs = [
+          ...tabs,
+          {
+            name: plugin.name,
+            label: plugin.label,
+            Component: plugin.TabComponent,
+          },
+        ];
+      }
+    });
+    const activeTabName = 'general';
+    return {
+      tabs,
+      activeTabName,
+    };
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if ((!this.props.httpCall) && nextProps.httpCall) {
+      this.setState(this.getInitialState(nextProps));
+    }
+  }
+
+  setActiveTabName(tabName) {
+    this.setState({
+      activeTabName: tabName,
+    });
+  }
+
   render() {
     const { httpCall } = this.props;
     if (!httpCall) {
       return null;
     }
+    const { tabs, activeTabName } = this.state;
+    const TabComponent = tabs.filter(t => t.name === activeTabName)[0].Component;
+
     return (
-      httpCall.data.plugins_data.ViewName.view_name
+      <div>
+        <div className='right-pane-header'>
+          {
+            tabs.map(tab => (
+              <div
+                className={classNames('tab', {
+                  'active-tab': tab.name === activeTabName,
+                })}
+                key={tab.name}
+                onClick={this.setActiveTabName.bind(this, tab.name)}
+              >
+                {tab.label}
+              </div>
+            ))
+          }
+        </div>
+        <div className='right-pane-content'>
+          <TabComponent httpCall={httpCall} />
+        </div>
+      </div>
+    );
+  }
+}
+
+class RightPaneGeneralTab extends React.Component {
+  render() {
+    const { httpCall } = this.props;
+    const { plugins_data } = httpCall.data;
+    let dataLines = [];
+    plugins.forEach((plugin) => {
+      if (plugin.name in plugins_data) {
+        dataLines = [
+          ...dataLines,
+          ...plugin.getGeneralData(plugins_data[plugin.name]),
+        ];
+      }
+    });
+    console.log(plugins, plugins_data, dataLines);
+    return (
+      <div className='general-tab-content'>
+        {
+          dataLines.map((dataLine, i) => (
+            <div
+              className='general-tab-content-row'
+              key={i}
+            >
+              <b>
+                { dataLine.name }
+              </b><span>: </span>
+              <span
+                className='margin-left-5'
+              >
+                {dataLine.value || ''}
+              </span>
+            </div>
+          ))
+        }
+      </div>
     );
   }
 }
