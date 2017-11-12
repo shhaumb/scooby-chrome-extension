@@ -73,8 +73,6 @@ class App extends React.Component {
     const { activeCallIndex, httpCalls } = this.state;
     return (
       <div className='panel'>
-        <div className='panel-header'>
-        </div>
         <LeftPane
           httpCalls={httpCalls}
           activeCallIndex={activeCallIndex}
