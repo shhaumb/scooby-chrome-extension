@@ -2,13 +2,53 @@ import React from 'react';
 
 import { Stack } from '../stack';
 
+class QueryText extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      compact: true,
+    };
+    this.toggleCompact = this.toggleCompact.bind(this);
+  }
+
+  toggleCompact() {
+    this.setState({
+      compact: !this.state.compact,
+    });
+  }
+
+  getCompactQuery() {
+    const { text } = this.props;
+    const regex = /^(SELECT) .* (FROM .*)/;
+    if (regex.test(text)) {
+      return text.replace(regex, "$1 ... $2");
+    }
+    return text;
+  }
+
+  render() {
+    const { text } = this.props;
+    return (
+      <div
+        className='query-sql cursor-pointer'
+        onClick={this.toggleCompact}
+      >
+      {
+        this.state.compact
+        ?
+          this.getCompactQuery()
+        :
+          text
+      }
+      </div>
+    );
+  }
+}
 
 function Query({ query }) {
   return (
     <div className='query'>
-      <div className='query-sql'>
-        { query.query }
-      </div>
+      <QueryText text={query.query} />
       <div className='query-extra'>
         <div className='query-row-single'>
           <strong>{ Math.round(query.time_taken) } ms</strong>
@@ -30,12 +70,18 @@ class SQLTabComponent extends React.Component {
     return (
       <div key={httpCall.uuid}>
         {
-          queries.map((query, index) => (
-            <Query
-              key={index}
-              query={query}
-            />
-          ))
+          queries.length == 0
+          ?
+            <div>
+              No SQL queries.
+            </div>
+          :
+            queries.map((query, index) => (
+              <Query
+                key={index}
+                query={query}
+              />
+            ))
         }
       </div>
     );

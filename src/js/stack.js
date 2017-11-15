@@ -138,7 +138,8 @@ export class Stack extends React.Component {
     if (!this.state.includeLib) {
       frames = frames.filter(frame => (
         (frame.filename.indexOf('dist-packages') == -1) &&
-        (frame.filename.indexOf('site-packages') == -1)
+        (frame.filename.indexOf('site-packages') == -1) &&
+        (frame.filename.indexOf('/usr/lib/python') == -1)
       ));
     }
     return frames;

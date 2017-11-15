@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import jQuery from 'jquery';
 import classNames from 'classnames';
+import Resizable from 're-resizable';
 
 import { plugins } from './plugins';
 import {
@@ -12,7 +13,7 @@ import {
   getScoobyDataUrl,
 } from './utils';
 
-const ScoobyHeader = 'X-Scooby';
+const ScoobyHeader = 'x-scooby';
 
 
 class App extends React.Component {
@@ -31,14 +32,21 @@ class App extends React.Component {
   }
 
   componentDidMount() {
+    if (!chrome.devtools) {
+      return;
+    }
     chrome.devtools.network.onRequestFinished.addListener((http) => {
       const { headers } = http.response;
       if (headers.some(header => (
-        (header.name === 'Content-Type') && (
+        (header.name.toLowerCase() === 'content-type') && (
           (startsWith(header.value, 'text/html')) ||
           (startsWith(header.value, 'application/json'))
-        ))) && headers.some(header => header.name === ScoobyHeader)) {
-        const scoobyHeader = headers.filter(header => header.name === ScoobyHeader)[0];
+        ))) && headers.some(header => (
+          header.name.toLowerCase() === ScoobyHeader
+        ))) {
+        const scoobyHeader = headers.filter(header => (
+          header.name.toLowerCase() === ScoobyHeader
+        ))[0];
         const uuid = scoobyHeader.value;
         this.fetchHttpData(http, uuid);
       }
@@ -72,13 +80,23 @@ class App extends React.Component {
   render() {
     const { activeCallIndex, httpCalls } = this.state;
     return (
-      <div className='panel'>
-        <LeftPane
-          httpCalls={httpCalls}
-          activeCallIndex={activeCallIndex}
-          setActiveCallIndex={this.setActiveCallIndex}
-        />
-        <div className='right-pane'>
+      <div className='panel-container'>
+        <div className='panel'>
+          <Resizable
+            className='left-pane-container'
+            defaultSize={{
+              width: 350,
+              height: '100%',
+            }}
+            minWidth={300}
+            maxWidth={500}
+          >
+            <LeftPane
+              httpCalls={httpCalls}
+              activeCallIndex={activeCallIndex}
+              setActiveCallIndex={this.setActiveCallIndex}
+            />
+          </Resizable>
           <RightPane
             httpCall={(activeCallIndex === null) ? null : httpCalls[activeCallIndex]}
           />
@@ -105,7 +123,7 @@ class LeftPane extends React.Component {
             httpCalls.map((httpCall, index) => (
               <div
                 key={httpCall.uuid}
-                className={classNames('row', 'text-nowrap', {
+                className={classNames('row', {
                   'active-row': index == activeCallIndex,
                 })}
                 onClick={this.onClickOnRow.bind(this, index)}
@@ -174,14 +192,16 @@ class RightPane extends React.Component {
 
   render() {
     const { httpCall } = this.props;
+    let { tabs, activeTabName } = this.state;
     if (!httpCall) {
-      return null;
+      return (
+        <div className="right-pane" />
+      );
     }
-    const { tabs, activeTabName } = this.state;
     const TabComponent = tabs.filter(t => t.name === activeTabName)[0].Component;
 
     return (
-      <div>
+      <div className="right-pane">
         <div className='right-pane-header'>
           {
             tabs.map(tab => (

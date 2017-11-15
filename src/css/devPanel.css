@@ -29,41 +29,40 @@ body {
     font-weight: bold;
 }
 
-.panel-header {
-    position: fixed;
+.panel {
+ 	position: absolute;
+  	top:0;
+  	left:0;
+  	right:0;
+  	bottom:0;
+  	overflow: hidden;
+}
+
+
+.left-pane-container {
+    border-right: 1px solid #ccc;
+    float:left;
+}
+
+.left-pane-handler {
+    width: 9px;
+    position: absolute;
+    right: -5px;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 25px;
-    border-bottom: 1px solid #ccc;
+    bottom: 0;
+	background-color: rgba(0,0,100,0.5);
 }
 
 .left-pane {
-    position: fixed;
-    /*top: 25px;*/
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 25%;
-    border-right: 1px solid #ccc;
-    float: left;
+	height: 100%;
 }
 
 .right-pane {
-    position: fixed;
-    /*top: 25px;*/
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 75%;
-    float: right;
+    flex-grow: 1;
+	height: 100%;
 }
 
 .left-pane-header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
     height: 27px;
     border-bottom: 1px solid #ccc;
     padding: 7px 10px;
@@ -71,15 +70,13 @@ body {
 }
 
 .left-pane-content {
-    position: absolute;
-    top: 27px;
-    left: 0;
-    right: 0;
-    bottom: 0;
+	overflow-y: auto;
     overflow-x: hidden;
+	height: calc(100% - 27px);
 }
 
 .left-pane .row {
+    width: 100%;
     padding: 10px;
     cursor: pointer;
     background: #eee;
@@ -99,10 +96,6 @@ body {
 }
 
 .right-pane-header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
     height: 27px;
     border-bottom: 1px solid #ccc;
     padding: 0px 10px;
@@ -127,13 +120,10 @@ body {
 }
 
 .right-pane-content {
-    position: absolute;
-    top: 27px;
-    left: 0;
-    right: 0;
-    bottom: 0;
     padding: 10px;
     overflow-x: auto;
+    overflow-y: auto;
+	height: calc(100% - 27px);
 }
 
 .general-tab-content {
@@ -250,4 +240,8 @@ body {
     padding: 5px;
     float: left;
     width: 80%;
+}
+
+.cursor-pointer {
+    cursor: pointer;
 }
