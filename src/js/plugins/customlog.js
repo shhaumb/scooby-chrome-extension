@@ -8,7 +8,14 @@ function LogTab({ httpCall }) {
   if (logs.length == 0) {
     return (
       <div>
-        Nothing logged.
+        Nothing logged.<br />
+        Do following in python code to log or inspect stack.
+        <pre className='codeblock'>
+          import scooby<br />
+          scooby.log("foo", "bar")<br />
+          # or<br />
+          scooby.log()         # It works without giving any argument too.<br />
+        </pre>
       </div>
     );
   }

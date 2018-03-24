@@ -177,10 +177,18 @@ body {
     margin-left: 15px;
 }
 
-.stack-header input[type=checkbox] {
+label input[type=checkbox] {
     position: relative;
-    top: 2px;
+    top: 4px;
     margin-left: 5px;
+}
+
+label {
+    margin-left: 5px;
+}
+
+label + label {
+    margin-left: 50px;
 }
 
 .frame + .frame{
@@ -244,4 +252,21 @@ body {
 
 .cursor-pointer {
     cursor: pointer;
+}
+
+pre.codeblock {
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    color: #333;
+    page-break-inside: avoid;
+    font-family: monospace;
+    line-height: 1.6;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    max-width: 100%;
+    overflow: auto;
+    padding: 5px 10px;
+    display: block;
+    word-wrap: break-word;
 }
