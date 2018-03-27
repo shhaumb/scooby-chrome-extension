@@ -14,6 +14,7 @@ import {
 } from './utils';
 
 const ScoobyHeader = 'x-scooby';
+const ScoobyOverheadHeader = 'x-scooby-overhead';
 
 
 class App extends React.Component {
@@ -47,8 +48,12 @@ class App extends React.Component {
         const scoobyHeader = headers.filter(header => (
           header.name.toLowerCase() === ScoobyHeader
         ))[0];
+        const scoobyOverheadHeader = headers.filter(header => (
+          header.name.toLowerCase() === ScoobyOverheadHeader
+        ))[0]
         const uuid = scoobyHeader.value;
-        this.fetchHttpData(http, uuid);
+        const scoobyOverhead = scoobyOverheadHeader ? scoobyOverheadHeader.value : null;
+        this.fetchHttpData(http, uuid, scoobyOverhead);
       }
     });
     chrome.devtools.network.onNavigated.addListener(() => {
@@ -56,7 +61,7 @@ class App extends React.Component {
     });
   }
 
-  fetchHttpData(http, uuid) {
+  fetchHttpData(http, uuid, scoobyOverhead) {
     const domain = getDomain(http.request.url);
     jQuery.get(getScoobyDataUrl(domain, uuid)).then((data) => {
       console.log(data);
@@ -65,6 +70,7 @@ class App extends React.Component {
           http,
           uuid,
           data,
+          scoobyOverhead,
         }],
         activeCallIndex: this.state.activeCallIndex || 0,
       });
@@ -239,6 +245,12 @@ class RightPaneGeneralTab extends React.Component {
         ];
       }
     });
+    if (httpCall.scoobyOverhead !== null) {
+      dataLines.push({
+        name: 'Scooby overhead',
+        value: `${httpCall.scoobyOverhead} ms`,
+      });
+    }
     return (
       <div className='general-tab-content'>
         {
