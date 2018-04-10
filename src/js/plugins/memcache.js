@@ -24,7 +24,7 @@ class QueryText extends React.Component {
     if (Array.isArray(arg) && arg.length > 10 && this.state.compact) {
       argToShow = `<${arg.length} items>`;
     } else {
-      argToShow = JSON.stringify(arg);
+      argToShow = arg.map(q => `"${q}"`).join(', ');
     }
     return (
       <div
