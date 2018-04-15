@@ -1,6 +1,6 @@
 {
   "name": "scooby",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Scooby profiler",
   "engines": {
     "node": "7.0.0",
