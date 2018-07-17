@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import jQuery from 'jquery';
 import classNames from 'classnames';
 import Resizable from 're-resizable';
+import jwt from 'jsonwebtoken';
+import ToggleButton from 'react-toggle-button';
 
 import { plugins } from './plugins';
 import {
@@ -11,31 +13,80 @@ import {
   getDomain,
   getUrlAfterDomain,
   getScoobyDataUrl,
+  getScoobyCProfileDataUrl,
 } from './utils';
 
+const SCOOBY_COOKIE_NAME = 'scoobydoobydoo';
 const ScoobyHeader = 'x-scooby';
 const ScoobyOverheadHeader = 'x-scooby-overhead';
 
+function getSecretKey() {
+  // TODO: use from secret key management system
+  const secret_key = '9eaxs1qpGLNcYS1HR7xyvDb4G68Cfvor';
+  return secret_key;
+}
+
+function setCookieConfig(config, domain, secret_key) {
+  chrome.cookies.set({
+    url: domain,
+    name: SCOOBY_COOKIE_NAME,
+    value: jwt.sign(config, secret_key),
+    path: '/',
+    expirationDate: (new Date()).getTime()/1000 + 3*60*60,
+  });
+}
 
 class App extends React.Component {
-  constructor() {
-    super();
-    this.state = this.getInitialState();
+  constructor(props) {
+    super(props);
+    this.state = this.getInitialState(props);
 
     this.setActiveCallIndex = this.setActiveCallIndex.bind(this);
+    this.toggleEnabled = this.toggleEnabled.bind(this);
+    this.setDomainConfig = this.setDomainConfig.bind(this);
+    this.clearResponses = this.clearResponses.bind(this);
   }
 
-  getInitialState() {
+  getInitialState(props) {
     return {
       httpCalls: [],
       activeCallIndex: null,
+      domainConfig: props.domainConfig,
     };
   }
 
-  componentDidMount() {
-    if (!chrome.devtools) {
-      return;
-    }
+  isEnabled() {
+    return this.state.domainConfig.enable;
+  }
+
+  toggleEnabled() {
+    const nextEnable = !this.state.domainConfig.enable;
+    this.setState({
+      domainConfig: {
+        ...this.state.domainConfig,
+        enable: nextEnable,
+      },
+    }, () => {
+      setCookieConfig(this.state.domainConfig, this.props.domain, getSecretKey());
+    });
+  }
+
+  clearResponses() {
+    this.setState({
+      httpCalls: [],
+      activeCallIndex: null,
+    });
+  }
+
+  setDomainConfig(domainConfig) {
+    this.setState({
+      domainConfig,
+    }, () => {
+      setCookieConfig(this.state.domainConfig, this.props.domain, getSecretKey());
+    });
+  }
+
+  addHttpListener() {
     chrome.devtools.network.onRequestFinished.addListener((http) => {
       const { headers } = http.response;
       if (headers.some(header => (
@@ -56,15 +107,25 @@ class App extends React.Component {
         this.fetchHttpData(http, uuid, scoobyOverhead);
       }
     });
-    chrome.devtools.network.onNavigated.addListener(() => {
-      this.setState(this.getInitialState());
-    });
+  }
+
+  componentDidMount() {
+    if (!chrome.devtools) {
+      return;
+    }
+    this.addHttpListener();
+    // chrome.devtools.network.onNavigated.addListener(() => {});
+  }
+
+  componentWillUpdate(nextProps, nextState) {
+    if (!this.state.domainConfig.enable && nextState.domainConfig.enable) {
+      this.addHttpListener();
+    }
   }
 
   fetchHttpData(http, uuid, scoobyOverhead) {
     const domain = getDomain(http.request.url);
     jQuery.get(getScoobyDataUrl(domain, uuid)).then((data) => {
-      console.log(data);
       this.setState({
         httpCalls: [...this.state.httpCalls, {
           http,
@@ -101,10 +162,16 @@ class App extends React.Component {
               httpCalls={httpCalls}
               activeCallIndex={activeCallIndex}
               setActiveCallIndex={this.setActiveCallIndex}
+              isEnabled={this.isEnabled()}
+              toggleEnabled={this.toggleEnabled}
+              clearResponses={this.clearResponses}
             />
           </Resizable>
           <RightPane
+            domain={this.props.domain}
             httpCall={(activeCallIndex === null) ? null : httpCalls[activeCallIndex]}
+            domainConfig={this.state.domainConfig}
+            setDomainConfig={this.setDomainConfig}
           />
         </div>
       </div>
@@ -122,7 +189,19 @@ class LeftPane extends React.Component {
     return (
       <div className='left-pane'>
         <div className='left-pane-header'>
-          HTTP Calls
+          <span>HTTP Calls</span>
+          <div className='float-right' style={{ position: "relative", top: -4 }}>
+            <ToggleButton
+              value={this.props.isEnabled}
+              onToggle={this.props.toggleEnabled}
+            />
+          </div>
+          <a
+            className='clear-responses'
+            onClick={this.props.clearResponses}
+          >
+            Clear
+          </a>
         </div>
         <div className='left-pane-content'>
           {
@@ -177,6 +256,14 @@ class RightPane extends React.Component {
         ];
       }
     });
+    tabs = [
+      ...tabs,
+      {
+        name: 'cprofile',
+        label: 'cProfile',
+        Component: RightPaneCProfileTab,
+      },
+    ];
     const activeTabName = 'general';
     return {
       tabs,
@@ -224,8 +311,77 @@ class RightPane extends React.Component {
           }
         </div>
         <div className='right-pane-content'>
-          <TabComponent httpCall={httpCall} />
+          <TabComponent
+            domain={this.props.domain}
+            httpCall={httpCall}
+            domainConfig={this.props.domainConfig}
+            setDomainConfig={this.props.setDomainConfig}
+          />
         </div>
+      </div>
+    );
+  }
+}
+
+class RightPaneCProfileTab extends React.Component {
+  constructor() {
+    super();
+    this.toggleCProfile = this.toggleCProfile.bind(this);
+  }
+
+  toggleCProfile() {
+    const nextCProfile = !this.props.domainConfig.cprofile;
+    this.props.setDomainConfig({
+      ...this.props.domainConfig,
+      cprofile: nextCProfile,
+    });
+  }
+
+  isEnabled() {
+    return this.props.domainConfig.cprofile;
+  }
+
+  getStatsFileName() {
+    return `${this.props.httpCall.data.plugins_data.ViewName.view_name}.stats`;
+  }
+
+  render() {
+    const { domain, httpCall } = this.props;
+    const statsFileName = this.getStatsFileName();
+    return (
+      <div key={httpCall.uuid}>
+        <b>To enable/disable</b>
+        <div className='margin-top-10'>
+          <ToggleButton
+            value={this.isEnabled()}
+            onToggle={this.toggleCProfile}
+          />
+        </div>
+        {
+          this.isEnabled()
+          ?
+            <div className='margin-top-10'>
+              Download
+              <a
+                style={{ marginLeft: 3 }}
+                href={getScoobyCProfileDataUrl(domain, httpCall.uuid, statsFileName)}
+                target="_blank"
+              >
+                {statsFileName}
+              </a>
+              <div className='margin-top-10'>
+                Install <a href="https://jiffyclub.github.io/snakeviz/" target="_blank">snakeviz</a> to view the stats.
+                <div className='margin-top-10'>
+                  Run this in terminal.
+                  <pre className='codeblock'>
+                    snakeviz {statsFileName}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          :
+            null
+        }
       </div>
     );
   }
@@ -275,8 +431,31 @@ class RightPaneGeneralTab extends React.Component {
   }
 }
 
-ReactDOM.render(
-  (
-    <App />
-  ), document.getElementById('root'),
-);
+chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, (tabs) => {
+  const domain = getDomain(tabs[0].url);
+  let domainConfig = {
+    enable: false,
+    cprofile: false,
+  }
+  chrome.cookies.get({ url: domain, name: SCOOBY_COOKIE_NAME }, (cookie) => {
+    if (cookie == null) {
+      setCookieConfig(domainConfig, domain, getSecretKey());
+    } else {
+      try {
+        const config = jwt.verify(cookie.value, getSecretKey());
+        domainConfig = {
+          enable: config.enable || false,
+          cprofile: config.cprofile || false,
+        }
+      } catch (e) {}
+    }
+    ReactDOM.render(
+      (
+        <App
+          domain={domain}
+          domainConfig={domainConfig}
+        />
+      ), document.getElementById('root'),
+    );
+  });
+});

@@ -50,3 +50,7 @@ export function getUrlAfterDomain(url) {
 export function getScoobyDataUrl(domain, uuid) {
   return `${domain}/scooby/get-data/${uuid}/`;
 }
+
+export function getScoobyCProfileDataUrl(domain, uuid, filename) {
+  return `${domain}/scooby/get-cprofile-data/${uuid}/?filename=${filename}`;
+}

@@ -21,12 +21,35 @@ body {
     float: left;
 }
 
+.float-right {
+    float: right;
+}
+
 .text-nowrap {
     white-space: nowrap;
 }
 
 .bold {
     font-weight: bold;
+}
+
+.margin-top-10 {
+    margin-top: 10px;
+}
+
+.block {
+    display: block;
+}
+
+.clear-responses {
+    float: right;
+    margin-right: 10px;
+    cursor: pointer;
+    font-weight: normal;
+    color: #0091ff;
+}
+.clear-responses:hover {
+    font-weight: 500;
 }
 
 .panel {
@@ -38,6 +61,12 @@ body {
   	overflow: hidden;
 }
 
+.settings-icon {
+    float: right;
+    font-size: 15px;
+    line-height: 1em;
+    cursor: pointer;
+}
 
 .left-pane-container {
     border-right: 1px solid #ccc;
