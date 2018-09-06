@@ -42,6 +42,10 @@ export function getDomain(url) {
   return url.split('/')[0];
 }
 
+export function removeProtocol(domain) {
+  return domain.replace(/(^\w+:|^)\/\//, '');
+}
+
 export function getUrlAfterDomain(url) {
   const domain = getDomain(url);
   return url.substring(domain.length);

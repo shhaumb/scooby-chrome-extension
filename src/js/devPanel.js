@@ -14,17 +14,13 @@ import {
   getUrlAfterDomain,
   getScoobyDataUrl,
   getScoobyCProfileDataUrl,
+  removeProtocol,
 } from './utils';
 
 const SCOOBY_COOKIE_NAME = 'scoobydoobydoo';
 const ScoobyHeader = 'x-scooby';
 const ScoobyOverheadHeader = 'x-scooby-overhead';
 
-function getSecretKey() {
-  // TODO: use from secret key management system
-  const secret_key = '9eaxs1qpGLNcYS1HR7xyvDb4G68Cfvor';
-  return secret_key;
-}
 
 function setCookieConfig(config, domain, secret_key) {
   chrome.cookies.set({
@@ -35,6 +31,11 @@ function setCookieConfig(config, domain, secret_key) {
     expirationDate: (new Date()).getTime()/1000 + 3*60*60,
   });
 }
+
+const TABS = {
+  PROFILER: 'profiler',
+  SETTINGS: 'settings',
+};
 
 class App extends React.Component {
   constructor(props) {
@@ -52,6 +53,7 @@ class App extends React.Component {
       httpCalls: [],
       activeCallIndex: null,
       domainConfig: props.domainConfig,
+      currentTab: TABS.PROFILER,
     };
   }
 
@@ -66,8 +68,14 @@ class App extends React.Component {
         ...this.state.domainConfig,
         enable: nextEnable,
       },
+      ...(
+        nextEnable ? {
+          httpCalls: [],
+          activeCallIndex: null,
+        } : {}
+      ),
     }, () => {
-      setCookieConfig(this.state.domainConfig, this.props.domain, getSecretKey());
+      setCookieConfig(this.state.domainConfig, this.props.domain, this.props.secret_key);
     });
   }
 
@@ -82,7 +90,7 @@ class App extends React.Component {
     this.setState({
       domainConfig,
     }, () => {
-      setCookieConfig(this.state.domainConfig, this.props.domain, getSecretKey());
+      setCookieConfig(this.state.domainConfig, this.props.domain, this.props.secret_key);
     });
   }
 
@@ -144,36 +152,75 @@ class App extends React.Component {
     });
   }
 
+  setTab(tab) {
+    this.setState({
+      currentTab: tab,
+    });
+  }
+
   render() {
     const { activeCallIndex, httpCalls } = this.state;
     return (
       <div className='panel-container'>
-        <div className='panel'>
-          <Resizable
-            className='left-pane-container'
-            defaultSize={{
-              width: 350,
-              height: '100%',
-            }}
-            minWidth={300}
-            maxWidth={500}
-          >
-            <LeftPane
-              httpCalls={httpCalls}
-              activeCallIndex={activeCallIndex}
-              setActiveCallIndex={this.setActiveCallIndex}
-              isEnabled={this.isEnabled()}
-              toggleEnabled={this.toggleEnabled}
-              clearResponses={this.clearResponses}
+        <div className='panel-header'>
+          <div
+            className={classNames('main-tab', {
+              active: this.state.currentTab == TABS.PROFILER,
+            })}
+            onClick={() => { this.setTab(TABS.PROFILER); }}
+          >Profiler</div>
+          <div
+            className={classNames('main-tab', {
+              active: this.state.currentTab == TABS.SETTINGS,
+            })}
+            onClick={() => { this.setTab(TABS.SETTINGS); }}
+          >Settings</div>
+          <div className='float-right enabler'>
+            <ToggleButton
+              value={this.isEnabled()}
+              onToggle={this.toggleEnabled}
             />
-          </Resizable>
-          <RightPane
-            domain={this.props.domain}
-            httpCall={(activeCallIndex === null) ? null : httpCalls[activeCallIndex]}
-            domainConfig={this.state.domainConfig}
-            setDomainConfig={this.setDomainConfig}
-          />
+          </div>
         </div>
+        {
+          this.state.currentTab == TABS.PROFILER
+          ? (
+            this.isEnabled()
+            ?
+              <div className='panel'>
+                <Resizable
+                  className='left-pane-container'
+                  defaultSize={{
+                    width: 350,
+                    height: '100%',
+                  }}
+                  minWidth={300}
+                  maxWidth={500}
+                >
+                  <LeftPane
+                    httpCalls={httpCalls}
+                    activeCallIndex={activeCallIndex}
+                    setActiveCallIndex={this.setActiveCallIndex}
+                    clearResponses={this.clearResponses}
+                  />
+                </Resizable>
+                <RightPane
+                  domain={this.props.domain}
+                  httpCall={(activeCallIndex === null) ? null : httpCalls[activeCallIndex]}
+                  domainConfig={this.state.domainConfig}
+                  setDomainConfig={this.setDomainConfig}
+                />
+              </div>
+            :
+              <div className='panel'>
+                <div className='enabler-message'>
+                  Enable the profiler to view stats ...
+                </div>
+              </div>
+          )
+          :
+            null
+        }
       </div>
     );
   }
@@ -190,12 +237,6 @@ class LeftPane extends React.Component {
       <div className='left-pane'>
         <div className='left-pane-header'>
           <span>HTTP Calls</span>
-          <div className='float-right' style={{ position: "relative", top: -4 }}>
-            <ToggleButton
-              value={this.props.isEnabled}
-              onToggle={this.props.toggleEnabled}
-            />
-          </div>
           <a
             className='clear-responses'
             onClick={this.props.clearResponses}
@@ -431,31 +472,75 @@ class RightPaneGeneralTab extends React.Component {
   }
 }
 
-chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, (tabs) => {
-  const domain = getDomain(tabs[0].url);
-  let domainConfig = {
-    enable: false,
-    cprofile: false,
+const DOMAIN_SECRET_KEY_MAP_KEY = 'domain_secret_key_map';
+
+function promptForSecretKey(domain, domain_secret_key_map) {
+  const secret_key = prompt('Put Scooby\'s secret key for domain ' + domain) || '';
+  if (secret_key) {
+    chrome.storage.local.set({
+      [DOMAIN_SECRET_KEY_MAP_KEY]: {
+        ...domain_secret_key_map,
+        [domain]: secret_key,
+      },
+    }, () => {});
   }
-  chrome.cookies.get({ url: domain, name: SCOOBY_COOKIE_NAME }, (cookie) => {
-    if (cookie == null) {
-      setCookieConfig(domainConfig, domain, getSecretKey());
+  return secret_key;
+}
+
+chrome.storage.local.get(DOMAIN_SECRET_KEY_MAP_KEY, (localData) => {
+  let domain_secret_key_map = {};
+  if (!localData[DOMAIN_SECRET_KEY_MAP_KEY]) {
+    chrome.storage.local.set({
+      [DOMAIN_SECRET_KEY_MAP_KEY]: {},
+    }, () => {});
+  } else {
+    domain_secret_key_map = localData[DOMAIN_SECRET_KEY_MAP_KEY];
+  }
+
+  chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, (tabs) => {
+    const domain = getDomain(tabs[0].url);
+    const justDomain = removeProtocol(domain);
+    let secret_key;
+    if (!domain_secret_key_map[justDomain]) {
+      secret_key = promptForSecretKey(justDomain, domain_secret_key_map);
     } else {
-      try {
-        const config = jwt.verify(cookie.value, getSecretKey());
-        domainConfig = {
-          enable: config.enable || false,
-          cprofile: config.cprofile || false,
-        }
-      } catch (e) {}
+      secret_key = domain_secret_key_map[justDomain];
     }
-    ReactDOM.render(
-      (
-        <App
-          domain={domain}
-          domainConfig={domainConfig}
-        />
-      ), document.getElementById('root'),
-    );
+    let domainConfig = {
+      enable: false,
+      cprofile: false,
+    }
+    if (!secret_key) {
+      ReactDOM.render(
+        (
+          <div>
+            You need to set secret key for domain {justDomain} to use Scooby. Reload plugin and set secret key.
+          </div>
+        ), document.getElementById('root')
+      );
+    } else {
+      chrome.cookies.get({ url: domain, name: SCOOBY_COOKIE_NAME }, (cookie) => {
+        if (cookie == null) {
+          setCookieConfig(domainConfig, domain, secret_key);
+        } else {
+          try {
+            const config = jwt.verify(cookie.value, secret_key);
+            domainConfig = {
+              enable: config.enable || false,
+              cprofile: config.cprofile || false,
+            }
+          } catch (e) {}
+        }
+        ReactDOM.render(
+          (
+            <App
+              domain={domain}
+              domainConfig={domainConfig}
+              secret_key={secret_key}
+            />
+          ), document.getElementById('root'),
+        );
+      });
+    }
   });
 });
