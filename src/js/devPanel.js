@@ -282,6 +282,7 @@ class SettingsManageSecretKeys extends React.Component {
       domain_secret_key_map: null,
       domains: null,
     };
+    this.add = this.add.bind(this);
     this.edit = this.edit.bind(this);
     this.remove = this.remove.bind(this);
   }
@@ -294,6 +295,25 @@ class SettingsManageSecretKeys extends React.Component {
         domains: Object.keys(domain_secret_key_map),
       });
     });
+  }
+
+  add(domain, secret_key) {
+    const domains = [
+      ...this.state.domains,
+      domain,
+    ];
+    const domain_secret_key_map = {
+      ...this.state.domain_secret_key_map,
+      [domain]: secret_key,
+    };
+    this.setState({
+      domains,
+      domain_secret_key_map,
+    });
+    this.updateDomainSecretKeyMapInStorage(domain_secret_key_map);
+    if (domain == removeProtocol(this.props.domain)) {
+      setCookieConfig(this.props.domainConfig, this.props.domain, secret_key);
+    }
   }
 
   edit(domain, secret_key) {
@@ -355,6 +375,10 @@ class SettingsManageSecretKeys extends React.Component {
                 />
               ))
             }
+            <DomainSecretKeyAddRow
+              domain_secret_key_map={this.state.domain_secret_key_map}
+              add={this.add}
+            />
           </tbody>
         </table>
       </div>
@@ -444,6 +468,54 @@ class DomainSecretKeyRow extends React.Component {
                 </button>
               </span>
           }
+        </td>
+      </tr>
+    );
+  }
+}
+
+class DomainSecretKeyAddRow extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      domain: '',
+      secret_key: '',
+    };
+    this.onChange = this.onChange.bind(this);
+    this.add = this.add.bind(this);
+  }
+
+  onChange(e) {
+    this.setState({
+      [e.target.name]: e.target.value
+    });
+  }
+
+  add() {
+    if (this.state.domain in this.props.domain_secret_key_map) {
+      alert('Secret key for domain ' + this.state.domain + ' already exists.');
+    } else {
+      this.props.add(this.state.domain, this.state.secret_key);
+      this.setState({
+        domain: '',
+        secret_key: '',
+      });
+    }
+  }
+
+  render() {
+    return (
+      <tr>
+        <td>
+          <input onChange={this.onChange} value={this.state.domain} name='domain'/>
+        </td>
+        <td>
+          <input onChange={this.onChange} value={this.state.secret_key} name='secret_key'/>
+        </td>
+        <td>
+          <button onClick={this.add}>
+            Add
+          </button>
         </td>
       </tr>
     );
