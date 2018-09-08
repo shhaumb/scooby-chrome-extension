@@ -32,6 +32,13 @@ function setCookieConfig(config, domain, secret_key) {
   });
 }
 
+function removeCookie(domain) {
+  chrome.cookies.remove({
+    url: domain,
+    name: SCOOBY_COOKIE_NAME,
+  });
+}
+
 const TABS = {
   PROFILER: 'profiler',
   SETTINGS: 'settings',
@@ -219,9 +226,226 @@ class App extends React.Component {
               </div>
           )
           :
-            null
+            <SettingsPane
+              domainConfig={this.state.domainConfig}
+              domain={this.props.domain}
+            />
         }
       </div>
+    );
+  }
+}
+
+const SETTINGS_TABS = {
+  MANAGE_SECRET_KEYS: 'manage_secret_keys',
+};
+
+class SettingsPane extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      currentTab: SETTINGS_TABS.MANAGE_SECRET_KEYS,
+    };
+  }
+
+  render() {
+    return  (
+      <div className='panel'>
+        <Resizable
+          className='left-pane-container'
+          defaultSize={{
+            width: 350,
+            height: '100%',
+          }}
+          minWidth={300}
+          maxWidth={500}
+        >
+          <div className='left-pane'>
+            <div className='settings-tab'>
+              Manage Secret Keys
+            </div>
+          </div>
+        </Resizable>
+        <SettingsManageSecretKeys
+          domainConfig={this.props.domainConfig}
+          domain={this.props.domain}
+        />
+      </div>
+    );
+  }
+}
+
+class SettingsManageSecretKeys extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      domain_secret_key_map: null,
+      domains: null,
+    };
+    this.edit = this.edit.bind(this);
+    this.remove = this.remove.bind(this);
+  }
+
+  componentDidMount() {
+    chrome.storage.local.get(DOMAIN_SECRET_KEY_MAP_KEY, (localData) => {
+      const domain_secret_key_map = localData[DOMAIN_SECRET_KEY_MAP_KEY];
+      this.setState({
+        domain_secret_key_map,
+        domains: Object.keys(domain_secret_key_map),
+      });
+    });
+  }
+
+  edit(domain, secret_key) {
+    const domain_secret_key_map =  {
+      ...this.domain_secret_key_map,
+      [domain]: secret_key,
+    };
+
+    this.setState({
+      domain_secret_key_map,
+    });
+    this.updateDomainSecretKeyMapInStorage(domain_secret_key_map);
+    if (domain == removeProtocol(this.props.domain)) {
+      setCookieConfig(this.props.domainConfig, this.props.domain, secret_key);
+    }
+  }
+
+  remove(domain) {
+    const domains = this.state.domains.filter(d => d != domain);
+    const domain_secret_key_map = {...this.state.domain_secret_key_map};
+    delete domain_secret_key_map[domain];
+    this.setState({
+      domains,
+      domain_secret_key_map,
+    });
+    this.updateDomainSecretKeyMapInStorage(domain_secret_key_map);
+    if (domain == removeProtocol(this.props.domain)) {
+      removeCookie(this.props.domain);
+    }
+  }
+
+  updateDomainSecretKeyMapInStorage(domain_secret_key_map) {
+    chrome.storage.local.set({
+      [DOMAIN_SECRET_KEY_MAP_KEY]: domain_secret_key_map,
+    }, () => {});
+  }
+
+  render() {
+    if (this.state.domain_secret_key_map == null) {
+      return <div className='right-pane' />;
+    }
+    return (
+      <div className='right-pane'>
+        <table className='domain-secret-key-table'>
+          <tbody>
+            <tr>
+              <th>Domain</th>
+              <th>Secret Key</th>
+              <th />
+            </tr>
+            {
+              this.state.domains.map((domain) => (
+                <DomainSecretKeyRow
+                  key={domain}
+                  domain={domain}
+                  domain_secret_key_map={this.state.domain_secret_key_map}
+                  edit={this.edit}
+                  remove={this.remove}
+                />
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+}
+
+class DomainSecretKeyRow extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      editMode: false,
+    };
+    this.enableEditMode = this.enableEditMode.bind(this);
+    this.disableEditMode = this.disableEditMode.bind(this);
+    this.onChange = this.onChange.bind(this);
+    this.save = this.save.bind(this);
+    this.remove = this.remove.bind(this);
+  }
+
+  enableEditMode() {
+    this.setState({
+      editMode: true,
+      secret_key: this.props.domain_secret_key_map[this.props.domain],
+    });
+  }
+
+  disableEditMode() {
+    this.setState({
+      editMode: false,
+    });
+  }
+
+  save() {
+    if (this.state.secret_key) {
+      this.props.edit(this.props.domain, this.state.secret_key);
+      this.disableEditMode();
+    }
+  }
+
+  remove() {
+    const saidOK = confirm("Remove secret key for domain "+this.props.domain+"?");
+    if (saidOK) {
+      this.props.remove(this.props.domain);
+    }
+  }
+
+  onChange(e) {
+    this.setState({
+      secret_key: e.target.value,
+    });
+  }
+
+  render() {
+    return (
+      <tr>
+        <td>{this.props.domain}</td>
+        <td>
+          {
+            this.state.editMode
+            ?
+              <input onChange={this.onChange} value={this.state.secret_key} />
+            :
+              <span>
+                {this.props.domain_secret_key_map[this.props.domain]}
+              </span>
+          }
+        </td>
+        <td>
+          {
+            this.state.editMode
+            ? <span>
+                <button onClick={this.save}>
+                  Save
+                </button>
+                <button onClick={this.disableEditMode}>
+                  Cancel
+                </button>
+              </span>
+            :
+              <span>
+                <button onClick={this.enableEditMode}>
+                  Edit
+                </button>
+                <button onClick={this.remove}>
+                  Remove
+                </button>
+              </span>
+          }
+        </td>
+      </tr>
     );
   }
 }
@@ -513,7 +737,7 @@ chrome.storage.local.get(DOMAIN_SECRET_KEY_MAP_KEY, (localData) => {
     if (!secret_key) {
       ReactDOM.render(
         (
-          <div>
+          <div style={{ margin: 10 }}>
             You need to set secret key for domain {justDomain} to use Scooby. Reload plugin and set secret key.
           </div>
         ), document.getElementById('root')

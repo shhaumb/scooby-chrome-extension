@@ -43,7 +43,6 @@ body {
 
 .clear-responses {
     float: right;
-    margin-right: 10px;
     cursor: pointer;
     font-weight: normal;
     color: #0091ff;
@@ -211,6 +210,7 @@ body {
     margin: 10px 5px 20px 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    border-top-width: 2px;
 }
 
 .query-location {
@@ -342,4 +342,26 @@ pre.codeblock {
     padding: 5px 10px;
     display: block;
     word-wrap: break-word;
+}
+
+td, th {
+    padding: 5px 10px;
+    text-align: left;
+}
+
+button + button {
+    margin-left: 5px;
+}
+
+.settings-tab {
+    height: 30px;
+    box-sizing: border-box;
+    background-color: #eee;
+    line-height: 30px;
+    padding-left: 10px;
+    font-weight: 500;
+}
+
+.domain-secret-key-table {
+    margin-top: 10px;
 }

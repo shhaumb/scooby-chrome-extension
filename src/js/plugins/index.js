@@ -8,8 +8,8 @@ import { ThriftpyPlugin } from './thriftpy';
 export const plugins = [
   new ViewNamePlugin(),
   new ProcessTimePlugin(),
-  new CustomLogPlugin(),
   new SQLPlugin(),
   new MemcachePlugin(),
   new ThriftpyPlugin(),
+  new CustomLogPlugin(),
 ];
