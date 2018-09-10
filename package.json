@@ -1,6 +1,6 @@
 {
   "name": "scooby",
-  "version": "0.0.6",
+  "version": "1.0.0",
   "description": "Scooby profiler",
   "engines": {
     "node": "7.0.0",
@@ -22,7 +22,10 @@
     "react": "^16.1.0",
     "react-dom": "^16.1.0",
     "react-resizable-component": "git+https://github.com/bertrandmartel/react-resizable-component.git",
-    "react-toggle-button": "^2.2.0"
+    "react-toggle-button": "^2.2.0",
+    "webpack-shell-plugin": "^0.4.10",
+    "webpack-zip-plugin": "^0.1.6",
+    "zip-webpack-plugin": "^3.0.0"
   },
   "devDependencies": {
     "babel-core": "6.18.2",

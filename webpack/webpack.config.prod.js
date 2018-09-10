@@ -4,6 +4,7 @@ const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const VersionFilePlugin = require('webpack-version-file-plugin');
 const CrxPlugin = require('crx-webpack-plugin');
+const WebpackShellPlugin = require('webpack-shell-plugin');
 
 const config = require('./config.js');
 const pkg = require('../package.json');
@@ -34,6 +35,12 @@ module.exports = _.merge({}, config, {
       contentPath: '../build/prod',
       outputPath: '../build',
       name: appName
+    }),
+    new WebpackShellPlugin({
+      onBuildExit: [
+        'cd ./build/prod && zip -r ../' + appName + '.zip ./',
+      ],
+      safe: true,
     }),
     new webpack.DefinePlugin({ 'process.env.NODE_ENV': '"production"' }),
     new webpack.optimize.UglifyJsPlugin({

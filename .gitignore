@@ -6,5 +6,6 @@ build/*.crx
 build/dev
 build/prod
 build/updates.xml
+build/*.zip
 .tmp
 *.swp
